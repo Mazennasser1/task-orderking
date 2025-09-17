@@ -1,4 +1,4 @@
-import { Text, View, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import { Text, View, TouchableOpacity, StyleSheet, ActivityIndicator, Modal, ScrollView } from "react-native";
 import QRCode from 'react-native-qrcode-svg';
 import { useAuthStore } from "../store/authStore";
 import { useEffect, useState } from "react";
@@ -6,9 +6,12 @@ import { Ionicons } from "@expo/vector-icons";
 import COLORS from "../constants/colors";
 
 export default function Index() {
-    const { user, token, checkAuth, logout } = useAuthStore();
+    const { user, token, checkAuth, logout, getUserInfo } = useAuthStore();
     const [uuid, setUuid] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [showUserModal, setShowUserModal] = useState(false);
+    const [userInfo, setUserInfo] = useState(null);
+    const [loadingUserInfo, setLoadingUserInfo] = useState(false);
 
     console.log("user from store", user);
     console.log('token from store', token);
@@ -33,6 +36,18 @@ export default function Index() {
         }
     }
 
+    const handleUserInfoPress = async () => {
+        setLoadingUserInfo(true);
+        const result = await getUserInfo();
+        if (result.success) {
+            setUserInfo(result.user);
+            setShowUserModal(true);
+        } else {
+            console.error('Failed to fetch user info:', result.message);
+        }
+        setLoadingUserInfo(false);
+    }
+
     useEffect(() => {
         // fetch immediately
         fetchUUID();
@@ -49,12 +64,14 @@ export default function Index() {
                 {/* HEADER */}
                 <View style={styles.header}>
                     <View style={styles.welcomeSection}>
+                        <TouchableOpacity onPress={handleUserInfoPress} disabled={loadingUserInfo}>
                         <Ionicons
                             name="person-circle-outline"
                             size={32}
                             color={COLORS.primary}
                             style={styles.userIcon}
                         />
+                        </TouchableOpacity>
                         <Text style={styles.welcomeText}>Welcome back,</Text>
                         <Text style={styles.username}>{user?.username}</Text>
                     </View>
@@ -97,17 +114,95 @@ export default function Index() {
                     </View>
                 </View>
 
-                {/* LOGOUT BUTTON */}
-                <TouchableOpacity style={styles.logoutButton} onPress={logout}>
-                    <Ionicons
-                        name="log-out-outline"
-                        size={20}
-                        color={COLORS.white}
-                        style={styles.logoutIcon}
-                    />
-                    <Text style={styles.logoutText}>Sign Out</Text>
-                </TouchableOpacity>
+                {/* ACTION BUTTONS */}
+                <View style={styles.actionButtons}>
+                    <TouchableOpacity style={styles.userInfoButton} onPress={handleUserInfoPress} disabled={loadingUserInfo}>
+                        <Ionicons
+                            name="person-outline"
+                            size={20}
+                            color={COLORS.primary}
+                            style={styles.userInfoIcon}
+                        />
+                        {loadingUserInfo ? (
+                            <ActivityIndicator size="small" color={COLORS.primary} />
+                        ) : (
+                            <Text style={styles.userInfoText}>User Info</Text>
+                        )}
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+                        <Ionicons
+                            name="log-out-outline"
+                            size={20}
+                            color={COLORS.white}
+                            style={styles.logoutIcon}
+                        />
+                        <Text style={styles.logoutText}>Sign Out</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
+
+            {/* USER INFO MODAL */}
+            <Modal
+                visible={showUserModal}
+                animationType="slide"
+                presentationStyle="pageSheet"
+                onRequestClose={() => setShowUserModal(false)}
+            >
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalHeader}>
+                        <Text style={styles.modalTitle}>User Information</Text>
+                        <TouchableOpacity
+                            style={styles.closeButton}
+                            onPress={() => setShowUserModal(false)}
+                        >
+                            <Ionicons name="close" size={24} color={COLORS.textPrimary} />
+                        </TouchableOpacity>
+                    </View>
+
+                    <ScrollView style={styles.modalContent}>
+                        {userInfo && (
+                            <View style={styles.userInfoContainer}>
+                                <View style={styles.infoRow}>
+                                    <Ionicons name="person-circle-outline" size={24} color={COLORS.primary} />
+                                    <View style={styles.infoContent}>
+                                        <Text style={styles.infoLabel}>Username</Text>
+                                        <Text style={styles.infoValue}>{userInfo.username}</Text>
+                                    </View>
+                                </View>
+
+                                <View style={styles.infoRow}>
+                                    <Ionicons name="mail-outline" size={24} color={COLORS.primary} />
+                                    <View style={styles.infoContent}>
+                                        <Text style={styles.infoLabel}>Email</Text>
+                                        <Text style={styles.infoValue}>{userInfo.email}</Text>
+                                    </View>
+                                </View>
+
+                                <View style={styles.infoRow}>
+                                    <Ionicons name="calendar-outline" size={24} color={COLORS.primary} />
+                                    <View style={styles.infoContent}>
+                                        <Text style={styles.infoLabel}>Member Since</Text>
+                                        <Text style={styles.infoValue}>
+                                            {new Date(userInfo.createdAt).toLocaleDateString()}
+                                        </Text>
+                                    </View>
+                                </View>
+
+                                <View style={styles.infoRow}>
+                                    <Ionicons name="time-outline" size={24} color={COLORS.primary} />
+                                    <View style={styles.infoContent}>
+                                        <Text style={styles.infoLabel}>Last Updated</Text>
+                                        <Text style={styles.infoValue}>
+                                            {new Date(userInfo.updatedAt).toLocaleDateString()}
+                                        </Text>
+                                    </View>
+                                </View>
+                            </View>
+                        )}
+                    </ScrollView>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -226,10 +321,39 @@ const styles = StyleSheet.create({
         color: COLORS.textSecondary,
         marginLeft: 4,
     },
+    actionButtons: {
+        flexDirection: "row",
+        gap: 12,
+    },
+    userInfoButton: {
+        backgroundColor: COLORS.white,
+        borderRadius: 12,
+        height: 50,
+        flex: 1,
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+        borderWidth: 2,
+        borderColor: COLORS.primary,
+        shadowColor: COLORS.black,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    userInfoIcon: {
+        marginRight: 8,
+    },
+    userInfoText: {
+        color: COLORS.primary,
+        fontSize: 16,
+        fontWeight: "600",
+    },
     logoutButton: {
         backgroundColor: COLORS.primary,
         borderRadius: 12,
         height: 50,
+        flex: 1,
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
@@ -246,5 +370,60 @@ const styles = StyleSheet.create({
         color: COLORS.white,
         fontSize: 16,
         fontWeight: "600",
+    },
+    // Modal styles
+    modalContainer: {
+        flex: 1,
+        backgroundColor: COLORS.background,
+    },
+    modalHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: 20,
+        paddingTop: 60,
+        backgroundColor: COLORS.cardBackground,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.border,
+    },
+    modalTitle: {
+        fontSize: 24,
+        fontWeight: "700",
+        color: COLORS.textPrimary,
+    },
+    closeButton: {
+        padding: 8,
+    },
+    modalContent: {
+        flex: 1,
+        padding: 20,
+    },
+    userInfoContainer: {
+        backgroundColor: COLORS.cardBackground,
+        borderRadius: 16,
+        padding: 20,
+        borderWidth: 2,
+        borderColor: COLORS.border,
+    },
+    infoRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.border,
+    },
+    infoContent: {
+        marginLeft: 16,
+        flex: 1,
+    },
+    infoLabel: {
+        fontSize: 14,
+        color: COLORS.textSecondary,
+        marginBottom: 4,
+    },
+    infoValue: {
+        fontSize: 16,
+        color: COLORS.textPrimary,
+        fontWeight: "500",
     },
 });

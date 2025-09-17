@@ -155,4 +155,31 @@ export const useAuthStore = create((set) => ({
             console.error("Logout error:", error);
         }
     },
+
+    getUserInfo: async () => {
+        const { token } = useAuthStore.getState();
+        if (!token) {
+            return { success: false, message: "No token available" };
+        }
+
+        try {
+            const response = await fetch('http://192.168.1.6:2025/auth/user-info', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+            
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Failed to fetch user info');
+            }
+            
+            return { success: true, user: data.user };
+        } catch (error) {
+            console.error("Get user info error:", error);
+            return { success: false, message: error.message };
+        }
+    },
 }));

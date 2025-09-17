@@ -209,3 +209,33 @@ export const verifyResetToken = async (req, res) => {
         res.status(500).json({ message: "Server error", error: err.message });
     }
 };
+
+// Get user profile information
+export const getUserInfo = async (req, res) => {
+    try {
+        const userId = req.user.id; // From JWT token
+
+        const user = await User.findById(userId).select('-password -resetPasswordToken -resetPasswordExpires');
+        
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found"
+            });
+        }
+
+        res.status(200).json({
+            message: "User information retrieved successfully",
+            user: {
+                id: user._id,
+                username: user.username,
+                email: user.email,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt
+            }
+        });
+
+    } catch (err) {
+        console.error("Get user info error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+};
