@@ -4,8 +4,10 @@ import { useAuthStore } from "../store/authStore";
 import { useEffect, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import COLORS from "../constants/colors";
+import { useTheme } from "../components/ThemeProvider";
 
 export default function Index() {
+    const { theme, toggleTheme } = useTheme();
     const { user, token, checkAuth, logout, getUserInfo } = useAuthStore();
     const [uuid, setUuid] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -59,8 +61,8 @@ export default function Index() {
     }, []);
 
     return (
-        <View style={styles.container}>
-            <View style={styles.card}>
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
+            <View style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
                 {/* HEADER */}
                 <View style={styles.header}>
                     <View style={styles.welcomeSection}>
@@ -68,46 +70,49 @@ export default function Index() {
                         <Ionicons
                             name="person-circle-outline"
                             size={32}
-                            color={COLORS.primary}
+                            color={theme.primary}
                             style={styles.userIcon}
                         />
                         </TouchableOpacity>
-                        <Text style={styles.welcomeText}>Welcome back,</Text>
-                        <Text style={styles.username}>{user?.username}</Text>
+                        <Text style={[styles.welcomeText, { color: theme.textSecondary }]}>Welcome back,</Text>
+                        <Text style={[styles.username, { color: theme.primary }]}>{user?.username}</Text>
                     </View>
+                    <TouchableOpacity onPress={toggleTheme} style={{ position: 'absolute', right: 0, top: 0, padding: 6 }}>
+                        <Ionicons name="contrast-outline" size={20} color={theme.textPrimary} />
+                    </TouchableOpacity>
                 </View>
 
                 {/* QR CODE SECTION */}
                 <View style={styles.qrSection}>
-                    <Text style={styles.qrTitle}>Your QR Code</Text>
-                    <Text style={styles.qrSubtitle}>Present this code for verification</Text>
+                    <Text style={[styles.qrTitle, { color: theme.textPrimary }]}>Your QR Code</Text>
+                    <Text style={[styles.qrSubtitle, { color: theme.textSecondary }]}>Present this code for verification</Text>
 
                     <View style={styles.qrContainer}>
                         {loading ? (
-                            <View style={styles.loadingContainer}>
-                                <ActivityIndicator size="large" color={COLORS.primary} />
-                                <Text style={styles.loadingText}>Generating QR Code...</Text>
+                            <View style={[styles.loadingContainer, { backgroundColor: theme.inputBackground, borderColor: theme.border }]}>
+                                <ActivityIndicator size="large" color={theme.primary} />
+                                <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Generating QR Code...</Text>
                             </View>
                         ) : (
                             <>
                                 {uuid && (
-                                    <View style={styles.qrCodeWrapper}>
+                                    <View style={[styles.qrCodeWrapper, { backgroundColor: theme.white, borderColor: theme.border }]}>
                                         <QRCode
                                             value={uuid}
                                             size={200}
-                                            backgroundColor={COLORS.white}
-                                            color={COLORS.textDark}
+                                            backgroundColor={theme.white}
+                                            color={theme.textDark}
                                         />
                                     </View>
                                 )}
-                                <Text style={styles.uuidText}>{uuid}</Text>
+                                <Text style={[styles.uuidText, { color: theme.textSecondary, backgroundColor: theme.inputBackground, borderColor: theme.border }]}>{uuid}</Text>
                                 <View style={styles.refreshIndicator}>
                                     <Ionicons
                                         name="refresh-outline"
                                         size={16}
-                                        color={COLORS.textSecondary}
+                                        color={theme.textSecondary}
                                     />
-                                    <Text style={styles.refreshText}>Auto-refreshes every 60 seconds</Text>
+                                    <Text style={[styles.refreshText, { color: theme.textSecondary }]}>Auto-refreshes every 60 seconds</Text>
                                 </View>
                             </>
                         )}
@@ -116,21 +121,21 @@ export default function Index() {
 
                 {/* ACTION BUTTONS */}
                 <View style={styles.actionButtons}>
-                    <TouchableOpacity style={styles.userInfoButton} onPress={handleUserInfoPress} disabled={loadingUserInfo}>
+                    <TouchableOpacity style={[styles.userInfoButton, { borderColor: theme.primary, backgroundColor: theme.white }]} onPress={handleUserInfoPress} disabled={loadingUserInfo}>
                         <Ionicons
                             name="person-outline"
                             size={20}
-                            color={COLORS.primary}
+                            color={theme.primary}
                             style={styles.userInfoIcon}
                         />
                         {loadingUserInfo ? (
-                            <ActivityIndicator size="small" color={COLORS.primary} />
+                            <ActivityIndicator size="small" color={theme.primary} />
                         ) : (
-                            <Text style={styles.userInfoText}>User Info</Text>
+                            <Text style={[styles.userInfoText, { color: theme.primary }]}>User Info</Text>
                         )}
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+                    <TouchableOpacity style={[styles.logoutButton, { backgroundColor: theme.primary }]} onPress={logout}>
                         <Ionicons
                             name="log-out-outline"
                             size={20}
@@ -149,51 +154,51 @@ export default function Index() {
                 presentationStyle="pageSheet"
                 onRequestClose={() => setShowUserModal(false)}
             >
-                <View style={styles.modalContainer}>
-                    <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>User Information</Text>
+                <View style={[styles.modalContainer, { backgroundColor: theme.background }]}>
+                    <View style={[styles.modalHeader, { backgroundColor: theme.cardBackground, borderBottomColor: theme.border }]}>
+                        <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>User Information</Text>
                         <TouchableOpacity
                             style={styles.closeButton}
                             onPress={() => setShowUserModal(false)}
                         >
-                            <Ionicons name="close" size={24} color={COLORS.textPrimary} />
+                            <Ionicons name="close" size={24} color={theme.textPrimary} />
                         </TouchableOpacity>
                     </View>
 
                     <ScrollView style={styles.modalContent}>
                         {userInfo && (
-                            <View style={styles.userInfoContainer}>
-                                <View style={styles.infoRow}>
-                                    <Ionicons name="person-circle-outline" size={24} color={COLORS.primary} />
+                            <View style={[styles.userInfoContainer, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+                                <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
+                                    <Ionicons name="person-circle-outline" size={24} color={theme.primary} />
                                     <View style={styles.infoContent}>
-                                        <Text style={styles.infoLabel}>Username</Text>
-                                        <Text style={styles.infoValue}>{userInfo.username}</Text>
+                                        <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Username</Text>
+                                        <Text style={[styles.infoValue, { color: theme.textPrimary }]}>{userInfo.username}</Text>
                                     </View>
                                 </View>
 
-                                <View style={styles.infoRow}>
-                                    <Ionicons name="mail-outline" size={24} color={COLORS.primary} />
+                                <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
+                                    <Ionicons name="mail-outline" size={24} color={theme.primary} />
                                     <View style={styles.infoContent}>
-                                        <Text style={styles.infoLabel}>Email</Text>
-                                        <Text style={styles.infoValue}>{userInfo.email}</Text>
+                                        <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Email</Text>
+                                        <Text style={[styles.infoValue, { color: theme.textPrimary }]}>{userInfo.email}</Text>
                                     </View>
                                 </View>
 
-                                <View style={styles.infoRow}>
-                                    <Ionicons name="calendar-outline" size={24} color={COLORS.primary} />
+                                <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
+                                    <Ionicons name="calendar-outline" size={24} color={theme.primary} />
                                     <View style={styles.infoContent}>
-                                        <Text style={styles.infoLabel}>Member Since</Text>
-                                        <Text style={styles.infoValue}>
+                                        <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Member Since</Text>
+                                        <Text style={[styles.infoValue, { color: theme.textPrimary }]}>
                                             {new Date(userInfo.createdAt).toLocaleDateString()}
                                         </Text>
                                     </View>
                                 </View>
 
-                                <View style={styles.infoRow}>
-                                    <Ionicons name="time-outline" size={24} color={COLORS.primary} />
+                                <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
+                                    <Ionicons name="time-outline" size={24} color={theme.primary} />
                                     <View style={styles.infoContent}>
-                                        <Text style={styles.infoLabel}>Last Updated</Text>
-                                        <Text style={styles.infoValue}>
+                                        <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Last Updated</Text>
+                                        <Text style={[styles.infoValue, { color: theme.textPrimary }]}>
                                             {new Date(userInfo.updatedAt).toLocaleDateString()}
                                         </Text>
                                     </View>

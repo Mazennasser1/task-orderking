@@ -45,7 +45,6 @@ export default function ForgetPass() {
     };
 
     return (
-        <SafeScreen>
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -122,7 +121,7 @@ export default function ForgetPass() {
                     </View>
                 </View>
             </KeyboardAvoidingView>
-        </SafeScreen>
+
     );
 }
 
