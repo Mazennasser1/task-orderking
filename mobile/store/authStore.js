@@ -39,15 +39,18 @@ export const useAuthStore = create((set) => ({
             return {success:false, message: error.message};
         }
     },
-    login: async (credentials) => {
+    login: async (email,password) => {
         set({ isLoading: true });
         try {
-            const response = await fetch('http://localhost:2025/auth/login', {
+            const response = await fetch('http://192.168.1.6:2025/auth/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(credentials),
+                body: JSON.stringify({
+                    email,
+                    password
+                }),
             });
             const data = await response.json();
             if (!response.ok) {

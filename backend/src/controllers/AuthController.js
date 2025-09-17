@@ -1,10 +1,16 @@
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
+import { sendPasswordResetEmail } from "../config/email.js";
 
 
 const generateToken = (user) => {
     return jwt.sign({id: user._id}, process.env.JWT_SECRET, {expiresIn: "1d"});
 }
+const generateResetToken = () => {
+    return crypto.randomBytes(32).toString('hex');
+};
+
 
 // Register a new user
 export const register = async (req, res) => {
@@ -72,24 +78,134 @@ export const login = async (req, res) => {
     }
 
 };
-// forgot password
-export const forgotPass =async (req, res) => {
+// Forgot password - send reset email
+export const forgotPassword = async (req, res) => {
     try {
-        const {email} = req.body;
+        const { email } = req.body;
+
         if (!email) {
-            return res.status(400).json({message: "Email is required"});
+            return res.status(400).json({ message: "Email is required" });
         }
+
         if (!/\S+@\S+\.\S+/.test(email)) {
-            return res.status(400).json({message: "Invalid email format"});
+            return res.status(400).json({ message: "Invalid email format" });
         }
-        const user = await User.findOne({email});
+
+        const user = await User.findOne({ email });
         if (!user) {
-            return res.status(400).json({message: "User not found"});
+            // For security, don't reveal if email exists or not
+            return res.status(200).json({
+                message: "If the email exists, a password reset link has been sent"
+            });
         }
-        // Here you would typically generate a password reset token and send it via email
-        res.status(200).json({message: "Password reset link has been sent to your email (not really, this is a placeholder)"});
+
+        // Generate reset token
+        const resetToken = generateResetToken();
+        const resetTokenExpiry = Date.now() + 3600000; // 1 hour from now
+
+        // Save reset token to user
+        user.resetPasswordToken = resetToken;
+        user.resetPasswordExpires = resetTokenExpiry;
+        await user.save();
+
+        // Send email
+        try {
+            await sendPasswordResetEmail(email, resetToken, user._id);
+            return res.status(200).json({
+                message: "Password reset link has been sent to your email"
+            });
+        } catch (emailError) {
+            console.error("Email sending error:", emailError.message);
+            // Remove the reset token if email fails
+            user.resetPasswordToken = undefined;
+            user.resetPasswordExpires = undefined;
+            await user.save();
+
+
+            return res.status(500).json({
+                message: "Failed to send reset email. Please try again."
+            });
+        }
+
     } catch (err) {
-        res.status(500).json({message: "Server error", error: err.message});
+        console.error("Forgot password error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
     }
 };
 
+// Reset password with token
+export const resetPassword = async (req, res) => {
+    try {
+        const { token, userId, newPassword } = req.body;
+
+        if (!token || !userId || !newPassword) {
+            return res.status(400).json({
+                message: "Token, user ID, and new password are required"
+            });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({
+                message: "Password must be at least 6 characters long"
+            });
+        }
+
+        const user = await User.findOne({
+            _id: userId,
+            resetPasswordToken: token,
+            resetPasswordExpires: { $gt: Date.now() }
+        });
+
+        if (!user) {
+            return res.status(400).json({
+                message: "Invalid or expired reset token"
+            });
+        }
+
+        // Update password and clear reset token
+        user.password = newPassword;
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+        await user.save();
+
+        res.status(200).json({
+            message: "Password has been reset successfully"
+        });
+
+    } catch (err) {
+        console.error("Reset password error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+};
+export const verifyResetToken = async (req, res) => {
+    try {
+        const { token, userId } = req.body;
+
+        if (!token || !userId) {
+            return res.status(400).json({
+                message: "Token and user ID are required"
+            });
+        }
+
+        const user = await User.findOne({
+            _id: userId,
+            resetPasswordToken: token,
+            resetPasswordExpires: { $gt: Date.now() }
+        });
+
+        if (!user) {
+            return res.status(400).json({
+                message: "Invalid or expired reset token"
+            });
+        }
+
+        res.status(200).json({
+            message: "Reset token is valid",
+            valid: true
+        });
+
+    } catch (err) {
+        console.error("Verify token error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+};
