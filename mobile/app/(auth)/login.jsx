@@ -95,7 +95,7 @@ export default function Login() {
                                     />
                                 </TouchableOpacity>
                             </View>
-                            <Link href={"/(auth)/forgetPass"}>Forget your Password</Link>
+                            <Link style={styles.link} href={"/(auth)/forgetPass"}>Forget your Password</Link>
                         </View>
 
                         <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={isLoading}>

@@ -5,7 +5,7 @@ import { sendPasswordResetEmail } from "../config/email.js";
 
 
 const generateToken = (user) => {
-    return jwt.sign({id: user._id}, process.env.JWT_SECRET, {expiresIn: "1d"});
+    return jwt.sign({id: user._id}, process.env.JWT_SECRET, {expiresIn: "65s"});
 }
 const generateResetToken = () => {
     return crypto.randomBytes(32).toString('hex');
@@ -99,20 +99,20 @@ export const forgotPassword = async (req, res) => {
             });
         }
 
-        // Generate reset token
-        const resetToken = generateResetToken();
+        // Generate 6-digit numeric code and expiry (1 hour)
+        const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
         const resetTokenExpiry = Date.now() + 3600000; // 1 hour from now
 
-        // Save reset token to user
-        user.resetPasswordToken = resetToken;
+        // Save reset code to user (reuse existing fields)
+        user.resetPasswordToken = resetCode;
         user.resetPasswordExpires = resetTokenExpiry;
         await user.save();
 
         // Send email
         try {
-            await sendPasswordResetEmail(email, resetToken, user._id);
+            await sendPasswordResetEmail(email, resetCode);
             return res.status(200).json({
-                message: "Password reset link has been sent to your email"
+                message: "Password reset code has been sent to your email"
             });
         } catch (emailError) {
             console.error("Email sending error:", emailError.message);
@@ -136,11 +136,11 @@ export const forgotPassword = async (req, res) => {
 // Reset password with token
 export const resetPassword = async (req, res) => {
     try {
-        const { token, userId, newPassword } = req.body;
+        const { email, code, newPassword } = req.body;
 
-        if (!token || !userId || !newPassword) {
+        if (!email || !code || !newPassword) {
             return res.status(400).json({
-                message: "Token, user ID, and new password are required"
+                message: "Email, code, and new password are required"
             });
         }
 
@@ -151,14 +151,14 @@ export const resetPassword = async (req, res) => {
         }
 
         const user = await User.findOne({
-            _id: userId,
-            resetPasswordToken: token,
+            email,
+            resetPasswordToken: code,
             resetPasswordExpires: { $gt: Date.now() }
         });
 
         if (!user) {
             return res.status(400).json({
-                message: "Invalid or expired reset token"
+                message: "Invalid or expired reset code"
             });
         }
 

@@ -11,31 +11,22 @@ const transporter = nodemailer.createTransport({
     },
 });
 // Send password reset email
-export const sendPasswordResetEmail = async (email, resetToken, userId) => {
+export const sendPasswordResetEmail = async (email, resetCode) => {
     try {
         // Use the transporter defined above
         const mailer = transporter;
 
-        const resetLink = `http://192.168.1.6:2025/reset-password?token=${resetToken}&userId=${userId}`;
-
         const mailOptions = {
             from: process.env.EMAIL_USER,
             to: email,
-            subject: 'Password Reset Request - OrderKing',
+            subject: 'Your OrderKing password reset code',
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                    <h2 style="color: #333;">Password Reset Request</h2>
-                    <p>You requested to reset your password for your OrderKing account.</p>
-                    <p>Click the link below to reset your password:</p>
-                    <a href="${resetLink}" 
-                       style="display: inline-block; padding: 12px 24px; 
-                              background-color: #007bff; color: white; 
-                              text-decoration: none; border-radius: 4px;
-                              margin: 16px 0;">
-                        Reset Password
-                    </a>
-                    <p>This link will expire in 1 hour.</p>
-                    <p>If you didn't request this reset, please ignore this email.</p>
+                    <h2 style="color: #333;">Password Reset Code</h2>
+                    <p>Use the code below to reset your OrderKing password:</p>
+                    <div style="font-size: 28px; font-weight: bold; letter-spacing: 4px; margin: 16px 0;">${resetCode}</div>
+                    <p>This code will expire in 1 hour.</p>
+                    <p>If you didn't request this reset, you can ignore this email.</p>
                     <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
                     <p style="color: #666; font-size: 12px;">
                         OrderKing Team<br>
