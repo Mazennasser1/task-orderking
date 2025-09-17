@@ -5,7 +5,7 @@ import { sendPasswordResetEmail } from "../config/email.js";
 
 
 const generateToken = (user) => {
-    return jwt.sign({id: user._id}, process.env.JWT_SECRET, {expiresIn: "65s"});
+    return jwt.sign({id: user._id}, process.env.JWT_SECRET, {expiresIn: "1d"});
 }
 const generateResetToken = () => {
     return crypto.randomBytes(32).toString('hex');
